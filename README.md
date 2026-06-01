@@ -6,7 +6,24 @@ Web UI for **Beeper v2** — async, allowlisted, Claude-to-Claude task delegatio
 
 ## Status
 
-**UI shell with mock data.** No backend wired yet. Once the InsForge `beeps` / `users` / `beep_events` tables exist, replace `src/lib/mock-beeps.ts` with SDK calls.
+**Wired to live cloud backend.** Calls the JSON API at https://beeper-v2-host.vercel.app (CORS-allowed). Identity is set via a localStorage'd `beeper_user` slug (`chinat`/`edward`/`kaan`/`jeffrey`); the gate modal on first load lets you pick.
+
+## Architecture
+
+```
+beeper-web-frontend (this) ─HTTPS─►  beeper-v2-host (Next.js on Vercel)
+                                        ├─ InsForge (queue + audit)
+                                        └─ Twilio (SMS notifications)
+```
+
+The host owns Twilio credentials, InsForge access, the close-before-notify ordering, and the admin auth. The frontend is a thin client.
+
+## Env
+
+`.env.local`:
+```
+NEXT_PUBLIC_BEEPER_API_URL=https://beeper-v2-host.vercel.app
+```
 
 ## Stack
 
@@ -21,10 +38,10 @@ Web UI for **Beeper v2** — async, allowlisted, Claude-to-Claude task delegatio
 | Route | Page |
 |---|---|
 | `/` | Home — brand anchor + entry tiles |
-| `/inbox` | Queued beeps to me (incoming) |
+| `/inbox` | Queued beeps to me (incoming) — with inline reply/decline |
 | `/sent` | Beeps I sent + their reply/queued/declined status |
 | `/compose` | New beep form — recipient / urgency L·N·H / task / optional transcript request |
-| `/access` | Allowlist + `gate` exposed-ports view |
+| `/access` | Allowlist — who can beep you |
 
 ## Design
 
@@ -35,16 +52,5 @@ Brutalist minimalist: pure white surface, black ink, square corners (`* { border
 ```bash
 pnpm install
 pnpm dev      # http://localhost:3000
-pnpm build    # all routes prerendered as static content
+pnpm build    # all routes compiled
 ```
-
-## Wiring this to real data (later)
-
-`src/lib/mock-beeps.ts` is the single source of mock data. When the InsForge backend is live:
-
-1. Add `@insforge/sdk` and an `InsforgeClient` provider.
-2. Replace `INBOX_BEEPS` / `SENT_BEEPS` exports with `getInboxBeeps()` / `getSentBeeps()` async functions that query the `beeps` table.
-3. Wire the compose form's `onSend` to an `insert` (use `crypto.randomUUID()` for the id — InsForge `insert` returns `data:[]`, not the row).
-4. Add a `/api/beep` route handler or call the SDK directly from server components.
-
-The page components are server components by default; only `/compose` and the nav components are `"use client"` because they need form state / `usePathname`.

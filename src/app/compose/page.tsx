@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { RECIPIENTS, type Urgency } from "@/lib/mock-beeps";
+import { api, type Urgency, type User } from "@/lib/api";
+import { useIdentity } from "@/lib/identity";
 
 const URGENCY: { key: Urgency; label: string }[] = [
   { key: "low", label: "L" },
@@ -13,22 +14,39 @@ const URGENCY: { key: Urgency; label: string }[] = [
 
 export default function ComposePage() {
   const router = useRouter();
-  const [recipient, setRecipient] = useState(RECIPIENTS[0].id);
+  const [me] = useIdentity();
+  const [users, setUsers] = useState<User[]>([]);
+  const [recipient, setRecipient] = useState("");
   const [urgency, setUrgency] = useState<Urgency>("normal");
   const [task, setTask] = useState("");
   const [requestTranscript, setRequestTranscript] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const onSend = () => {
-    if (!task.trim()) return;
-    // Mock: log and route to /sent (no backend yet).
-    console.log("would send beep", {
-      to: recipient,
-      urgency,
-      task,
-      requestTranscript,
+  useEffect(() => {
+    api.listUsers().then(us => {
+      const others = us.filter(u => u.id !== me);
+      setUsers(others);
+      setRecipient(others[0]?.id ?? "");
+    }).catch(() => {
+      // fallback: no recipients loaded
     });
-    router.push("/sent");
+  }, [me]);
+
+  const onSend = async () => {
+    if (!task.trim() || !me || !recipient) return;
+    setSending(true);
+    setError(null);
+    try {
+      await api.send({ from: me, to: recipient, task, urgency, request_transcript: requestTranscript });
+      router.push("/sent");
+    } catch (e: unknown) {
+      setError((e as Error).message);
+      setSending(false);
+    }
   };
+
+  if (!me) return null;
 
   return (
     <main className="flex-1 w-full max-w-3xl mx-auto p-container-margin md:py-8 flex flex-col">
@@ -64,9 +82,9 @@ export default function ComposePage() {
             onChange={(e) => setRecipient(e.target.value)}
             className="brutalist-select brutalist-input w-full border border-outline bg-surface-container-lowest px-gutter py-2 font-data-value text-data-value text-on-surface cursor-pointer"
           >
-            {RECIPIENTS.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.display_name.toUpperCase()} ({u.id})
               </option>
             ))}
           </select>
@@ -127,13 +145,19 @@ export default function ComposePage() {
           </span>
         </label>
 
+        {error && (
+          <div className="font-code-sm text-code-sm text-error border border-error px-stack-sm py-2">
+            {error}
+          </div>
+        )}
+
         <div className="mt-4 flex justify-end border-t border-surface-container-high pt-5">
           <button
             type="submit"
-            disabled={!task.trim()}
+            disabled={!task.trim() || sending || !recipient}
             className="bg-primary text-on-primary font-label-caps text-label-caps px-8 py-3 hover:bg-surface-tint active:bg-on-surface disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
           >
-            SEND
+            {sending ? "SENDING…" : "SEND"}
             <span
               className="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform"
               aria-hidden

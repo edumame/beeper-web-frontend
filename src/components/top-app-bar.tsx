@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useIdentity } from "@/lib/identity";
 
 const NAV = [
   { href: "/", label: "HOME" },
@@ -9,6 +10,20 @@ const NAV = [
   { href: "/sent", label: "SENT" },
   { href: "/access", label: "ACCESS" },
 ];
+
+function IdentityBadge() {
+  const [me, setMe, loaded] = useIdentity()
+  if (!loaded || !me) return null
+  return (
+    <button
+      onClick={() => { if (confirm('Switch identity?')) setMe(null) }}
+      className="ml-4 font-label-caps text-label-caps text-on-surface-variant border border-outline-variant px-2 py-1 hover:bg-surface-container"
+      title="Click to switch identity"
+    >
+      ME: {me.toUpperCase()}
+    </button>
+  )
+}
 
 export function TopAppBar() {
   const pathname = usePathname();
@@ -51,6 +66,7 @@ export function TopAppBar() {
           );
         })}
       </nav>
+      <IdentityBadge />
     </header>
   );
 }

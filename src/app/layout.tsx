@@ -4,6 +4,7 @@ import "./globals.css";
 import { TopAppBar } from "@/components/top-app-bar";
 import { SideNav } from "@/components/side-nav";
 import { BottomNav } from "@/components/bottom-nav";
+import { IdentityGate } from "@/components/identity-gate";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -41,7 +42,7 @@ export default function RootLayout({
         <TopAppBar />
         <SideNav />
         <div className="flex-1 flex flex-col md:pl-60 pt-10 pb-12 md:pb-0">
-          {children}
+          <IdentityGate>{children}</IdentityGate>
         </div>
         <BottomNav />
       </body>
