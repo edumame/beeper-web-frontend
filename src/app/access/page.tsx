@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { api, formatTime } from "@/lib/api";
 import { useIdentity } from "@/lib/identity";
@@ -31,7 +32,13 @@ export default function AccessPage() {
         <h1 className="font-display text-display tracking-tight text-on-surface">
           🔑 ACCESS
         </h1>
-        <span className="font-code-sm text-code-sm text-on-surface-variant bg-surface-container px-3 py-1 rounded-full border border-outline-variant">
+        <Link
+          href="/import"
+          className="font-label-caps text-label-caps text-on-primary bg-primary px-3 py-1.5 rounded-md hover:bg-on-primary-fixed-variant"
+        >
+          + IMPORT CONTACTS
+        </Link>
+        <span className="font-code-sm text-code-sm text-on-surface-variant bg-surface-container px-3 py-1 rounded-full border border-outline-variant ml-3">
           allowlist
         </span>
       </header>
