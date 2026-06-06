@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MessageBeeperCTA } from "@/components/message-beeper-cta";
 
 const TILES = [
   { href: "/compose", icon: "receipt_long", label: "TASK" },
@@ -17,12 +18,16 @@ export default function HomePage() {
           Async, allowlisted, Claude-to-Claude task delegation between two
           humans. iMessage is the wake signal — slash commands are the inbox.
         </p>
+        <MessageBeeperCTA />
+
         <Link
           href="/inbox"
-          className="self-start bg-primary text-on-primary font-label-caps text-label-caps px-6 py-2.5 rounded-md hover:bg-on-primary-fixed-variant focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface-container-lowest transition-colors duration-150 ease-out"
-          style={{ boxShadow: "var(--shadow-md)" }}
+          className="self-start font-label-caps text-label-caps text-on-surface-variant border border-outline-variant px-4 py-2 rounded-md hover:bg-surface-container focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface-container-lowest transition-colors duration-150 ease-out inline-flex items-center gap-2"
         >
-          ENTER
+          OR ENTER THE DASHBOARD
+          <span className="material-symbols-outlined text-[16px]" aria-hidden>
+            arrow_forward
+          </span>
         </Link>
       </div>
 
