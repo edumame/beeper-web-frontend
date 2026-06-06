@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, JetBrains_Mono } from "next/font/google";
+import { Geist, JetBrains_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { TopAppBar } from "@/components/top-app-bar";
 import { SideNav } from "@/components/side-nav";
@@ -14,6 +14,12 @@ const geist = Geist({
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
+});
+
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  axes: ["SOFT", "opsz"],
 });
 
 export const metadata: Metadata = {
@@ -45,7 +51,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geist.variable} ${jetbrainsMono.variable} light h-full antialiased`}
+      className={`${geist.variable} ${jetbrainsMono.variable} ${fraunces.variable} light h-full antialiased`}
     >
       <head>
         <link

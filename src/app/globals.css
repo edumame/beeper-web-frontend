@@ -95,6 +95,7 @@
   --font-data-value: var(--font-jetbrains-mono), ui-monospace, monospace;
   --font-code-sm: var(--font-jetbrains-mono), ui-monospace, monospace;
   --font-code-md: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-serif: var(--font-fraunces), Georgia, serif;
 
   /* Font sizes (unchanged) */
   --text-display: 24px;
@@ -191,4 +192,205 @@ body {
 
 .animate-fade-in {
   animation: fade-in 200ms ease-out both;
+}
+
+/* ============================================================
+   Landing page (signed-out) — dark CRT/pager terminal styling.
+   Scoped to .landing so the dashboard stays light & untouched.
+   ============================================================ */
+
+.landing {
+  background: #0a0a0a;
+  color: #fafafa;
+}
+
+/* CRT scanlines + faint corner vignette */
+.crt-surface {
+  position: relative;
+  background-color: #0a0a0a;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0) 0px,
+      rgba(255, 255, 255, 0) 2px,
+      rgba(255, 255, 255, 0.025) 2px,
+      rgba(255, 255, 255, 0.025) 3px
+    ),
+    radial-gradient(
+      ellipse at top left,
+      rgba(7, 192, 78, 0.08) 0%,
+      transparent 45%
+    ),
+    radial-gradient(
+      ellipse at bottom right,
+      rgba(7, 192, 78, 0.06) 0%,
+      transparent 50%
+    );
+}
+
+/* LCD-green text glow */
+.lcd-glow {
+  color: #07c04e;
+  text-shadow:
+    0 0 8px rgba(7, 192, 78, 0.45),
+    0 0 22px rgba(7, 192, 78, 0.2);
+}
+
+/* Pulsing green dot used in counter + nav status */
+.beep-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background-color: #07c04e;
+  box-shadow: 0 0 0 0 rgba(7, 192, 78, 0.7);
+  animation: beep-pulse 2.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes beep-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(7, 192, 78, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(7, 192, 78, 0);
+  }
+}
+
+/* Solid LCD-green pill, primary CTA */
+.cta-primary {
+  background-color: #07c04e;
+  color: #062614;
+  box-shadow:
+    0 0 0 1px rgba(174, 239, 195, 0.4) inset,
+    0 10px 32px -8px rgba(7, 192, 78, 0.55),
+    0 0 24px -4px rgba(7, 192, 78, 0.35);
+  transition: transform 120ms ease-out, box-shadow 200ms ease-out;
+}
+.cta-primary:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(174, 239, 195, 0.55) inset,
+    0 14px 40px -8px rgba(7, 192, 78, 0.7),
+    0 0 32px -4px rgba(7, 192, 78, 0.5);
+}
+.cta-primary:active {
+  transform: translateY(0);
+}
+
+/* Outline pill, secondary CTA */
+.cta-secondary {
+  background-color: transparent;
+  color: #fafafa;
+  border: 1px solid rgba(7, 192, 78, 0.4);
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+}
+.cta-secondary:hover {
+  background-color: rgba(7, 192, 78, 0.06);
+  border-color: rgba(7, 192, 78, 0.7);
+}
+
+/* Pixel-art ground for the mascot to walk on (none visible, just a strip) */
+.mascot-lane {
+  position: absolute;
+  bottom: 8%;
+  left: 0;
+  right: 0;
+  height: 56px;
+  pointer-events: none;
+}
+
+/* Pixel pager mascot — left-to-right wander */
+@keyframes pager-walk-rtl {
+  0%   { transform: translateX(100vw) translateY(0) scaleX(-1); }
+  49%  { transform: translateX(0vw)   translateY(0) scaleX(-1); }
+  50%  { transform: translateX(0vw)   translateY(0) scaleX(1); }
+  99%  { transform: translateX(100vw) translateY(0) scaleX(1); }
+  100% { transform: translateX(100vw) translateY(0) scaleX(-1); }
+}
+
+@keyframes pager-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2px); }
+}
+
+/* Floating "z z z" sleep particles */
+@keyframes z-float {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.7); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(10px, -22px) scale(1.05); }
+}
+
+/* Section title pill (mirrors Flip's float-on-white pill, dark variant) */
+.section-title-pill {
+  position: relative;
+  isolation: isolate;
+}
+.section-title-pill::before {
+  content: "";
+  position: absolute;
+  inset: -14px -28px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(10, 10, 10, 0.95) 0%,
+    rgba(10, 10, 10, 0.6) 60%,
+    transparent 100%
+  );
+  z-index: -1;
+  border-radius: 9999px;
+  filter: blur(8px);
+}
+
+/* iMessage-style bubble — outbound (green, on right) */
+.bubble-out {
+  max-width: 85%;
+  width: fit-content;
+  padding: 12px 18px;
+  border-radius: 22px;
+  background-color: #07c04e;
+  color: #061b0d;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  line-height: 1.35;
+  font-size: 15px;
+}
+
+/* iMessage-style bubble — inbound (dark gray, on left) */
+.bubble-in {
+  max-width: 85%;
+  width: fit-content;
+  padding: 12px 18px;
+  border-radius: 22px;
+  background-color: #1f1f1f;
+  color: #f5f5f5;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  line-height: 1.35;
+  font-size: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.bubble-mono {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 12.5px;
+  white-space: pre;
+  line-height: 1.5;
+}
+
+/* Scrollbar hide for the snap container */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Digit roll for live counter */
+@keyframes digit-roll {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0%);    opacity: 1; }
+}
+.digit-roll {
+  animation: digit-roll 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }

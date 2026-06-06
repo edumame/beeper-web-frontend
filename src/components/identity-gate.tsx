@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useIdentity } from '@/lib/identity'
 import { inboxRedirectFor } from '@/lib/landing-redirect'
+import { LandingPage } from '@/components/landing/landing-page'
 
 const PUBLIC_PATHS = new Set(['/login', '/'])
 const PUBLIC_PREFIXES = ['/docs', '/admin']
@@ -34,6 +35,8 @@ export function IdentityGate({ children }: { children: React.ReactNode }) {
     )
   }
 
+  // Signed-out + on root → show the marketing landing instead of redirecting.
+  if (!me && pathname === '/') return <LandingPage />
   if (!me && !isPublic) return null
   return <>{children}</>
 }
