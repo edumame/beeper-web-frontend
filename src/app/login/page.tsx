@@ -28,10 +28,14 @@ export default function LoginPage() {
     e.preventDefault()
     setError(null)
     setBusy(true)
+    const normalized = normalizePhone(phone)
+    console.log(`[beeper] login: requesting code for ${normalized}`)
     try {
-      await api.requestCode(normalizePhone(phone))
+      await api.requestCode(normalized)
+      console.log('[beeper] login: code request OK, advancing to code step')
       setStep('code')
     } catch (err) {
+      console.error('[beeper] login: code request failed', err)
       setError((err as Error).message)
     } finally {
       setBusy(false)
@@ -42,10 +46,14 @@ export default function LoginPage() {
     e.preventDefault()
     setError(null)
     setBusy(true)
+    const normalized = normalizePhone(phone)
+    console.log(`[beeper] login: verifying code for ${normalized}`)
     try {
-      await api.verifyCode(normalizePhone(phone), code.trim())
+      const r = await api.verifyCode(normalized, code.trim())
+      console.log(`[beeper] login: verify OK, user_id=${r.user_id}, redirecting to /`)
       router.replace('/')
     } catch (err) {
+      console.error('[beeper] login: verify failed', err)
       setError((err as Error).message)
     } finally {
       setBusy(false)

@@ -24,10 +24,17 @@ export function useIdentity(): [string | null, (id: string | null) => void, bool
 
     api.me()
       .then(m => {
+        console.log(`[beeper] identity: signed in as ${m.user_id}`)
         setMe(m.user_id)
         if (typeof window !== 'undefined') localStorage.setItem(KEY, m.user_id)
       })
-      .catch(() => {
+      .catch(e => {
+        const status = (e as Error & { status?: number }).status
+        if (status === 401) {
+          console.log('[beeper] identity: no session, redirecting to /login')
+        } else {
+          console.error('[beeper] identity: /api/auth/me failed', e)
+        }
         setMe(null)
         if (typeof window !== 'undefined') localStorage.removeItem(KEY)
       })

@@ -35,19 +35,41 @@ export type Me = {
 }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
-    credentials: 'include',
-    cache: 'no-store',
-  })
+  const url = `${BASE}${path}`
+  const method = init?.method ?? 'GET'
+  let res: Response
+  try {
+    res = await fetch(url, {
+      ...init,
+      headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
+      credentials: 'include',
+      cache: 'no-store',
+    })
+  } catch (e) {
+    // Network-level failure (DNS, offline, CORS preflight, cert). The browser
+    // gives no useful message in console by default — surface what we know.
+    console.error(`[beeper] ${method} ${url} → network error`, e)
+    throw new Error(`network error: ${(e as Error).message}`)
+  }
   const text = await res.text()
-  const data = text ? JSON.parse(text) : undefined
+  let data: unknown = undefined
+  try {
+    data = text ? JSON.parse(text) : undefined
+  } catch {
+    // Non-JSON body — usually Vercel's static 404 HTML. Keep `text` for the
+    // error message so the user sees what actually came back.
+  }
   if (!res.ok) {
-    const err = (data && typeof data === 'object' && 'message' in data)
-      ? new Error(`${(data as { error: string }).error}: ${(data as { message: string }).message}`)
-      : new Error(`${res.status} ${res.statusText}`)
-    ;(err as Error & { status: number }).status = res.status
+    const errCode = (data && typeof data === 'object' && 'error' in data)
+      ? (data as { error: string }).error : `http_${res.status}`
+    const errMsg = (data && typeof data === 'object' && 'message' in data)
+      ? (data as { message: string }).message
+      : (text ? text.slice(0, 200) : res.statusText)
+    console.error(`[beeper] ${method} ${url} → ${res.status} ${errCode}: ${errMsg}`)
+    const err = new Error(`${errCode}: ${errMsg}`)
+    ;(err as Error & { status: number; url: string; method: string }).status = res.status
+    ;(err as Error & { status: number; url: string; method: string }).url = url
+    ;(err as Error & { status: number; url: string; method: string }).method = method
     throw err
   }
   return data as T
