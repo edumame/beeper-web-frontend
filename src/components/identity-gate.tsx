@@ -2,6 +2,7 @@
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useIdentity } from '@/lib/identity'
+import { inboxRedirectFor } from '@/lib/landing-redirect'
 
 const PUBLIC_PATHS = new Set(['/login', '/'])
 const PUBLIC_PREFIXES = ['/docs', '/admin']
@@ -19,6 +20,11 @@ export function IdentityGate({ children }: { children: React.ReactNode }) {
     if (!loaded) return
     if (!me && !isPublic) router.replace('/login')
   }, [loaded, me, isPublic, router])
+
+  useEffect(() => {
+    const target = inboxRedirectFor({ pathname: pathname ?? '', me, loaded })
+    if (target) router.replace(target)
+  }, [pathname, me, loaded, router])
 
   if (!loaded) {
     return (
