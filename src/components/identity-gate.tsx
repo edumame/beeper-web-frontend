@@ -1,22 +1,26 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { api, User } from '@/lib/api'
 import { useIdentity } from '@/lib/identity'
 
 export function IdentityGate({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isAdmin = pathname?.startsWith('/admin') ?? false
   const [me, setMe, loaded] = useIdentity()
   const [users, setUsers] = useState<User[]>([])
   const [picked, setPicked] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!loaded || me) return
+    if (!loaded || me || isAdmin) return
     api.listUsers().then(us => {
       setUsers(us)
       setPicked(us[0]?.id ?? '')
     }).catch(e => setError((e as Error).message))
-  }, [loaded, me])
+  }, [loaded, me, isAdmin])
 
+  if (isAdmin) return <>{children}</>
   if (!loaded) return null
   if (me) return <>{children}</>
 
