@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { api } from '@/lib/api'
 
 type Step = 'phone' | 'code'
@@ -61,7 +62,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center px-container-margin">
+    <div className="flex-1 flex flex-col items-center justify-center gap-stack-md px-container-margin">
       <div
         className="bg-surface-container-lowest border border-outline-variant p-6 max-w-sm w-full flex flex-col gap-stack-sm"
         style={{ borderRadius: '12px', boxShadow: 'var(--shadow-lg)' }}
@@ -138,6 +139,12 @@ export default function LoginPage() {
           </form>
         )}
       </div>
+      <Link
+        href="/docs"
+        className="font-label-caps text-label-caps text-on-surface-variant hover:text-primary uppercase tracking-widest"
+      >
+        ↗ READ THE DOCS
+      </Link>
     </div>
   )
 }

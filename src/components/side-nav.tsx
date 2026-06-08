@@ -8,6 +8,7 @@ const NAV = [
   { href: "/inbox", label: "INBOX", icon: "inbox" },
   { href: "/sent", label: "SENT", icon: "send" },
   { href: "/access", label: "ACCESS", icon: "vpn_key" },
+  { href: "/docs", label: "DOCS", icon: "menu_book" },
 ];
 
 export function SideNav() {

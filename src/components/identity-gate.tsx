@@ -4,13 +4,16 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useIdentity } from '@/lib/identity'
 
 const PUBLIC_PATHS = new Set(['/login'])
+const PUBLIC_PREFIXES = ['/docs']
 
 export function IdentityGate({ children }: { children: React.ReactNode }) {
   const [me, , loaded] = useIdentity()
   const pathname = usePathname()
   const router = useRouter()
 
-  const isPublic = PUBLIC_PATHS.has(pathname)
+  const isPublic =
+    PUBLIC_PATHS.has(pathname) ||
+    PUBLIC_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))
 
   useEffect(() => {
     if (!loaded) return
