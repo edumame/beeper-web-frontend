@@ -1,10 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { api, User } from '@/lib/api'
 import { useIdentity } from '@/lib/identity'
+import { inboxRedirectFor } from '@/lib/landing-redirect'
 
 export function IdentityGate({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const pathname = usePathname()
   const isAdmin = pathname?.startsWith('/admin') ?? false
   const [me, setMe, loaded] = useIdentity()
@@ -19,6 +21,11 @@ export function IdentityGate({ children }: { children: React.ReactNode }) {
       setPicked(us[0]?.id ?? '')
     }).catch(e => setError((e as Error).message))
   }, [loaded, me, isAdmin])
+
+  useEffect(() => {
+    const target = inboxRedirectFor({ pathname: pathname ?? '', me, loaded })
+    if (target) router.replace(target)
+  }, [pathname, me, loaded, router])
 
   if (isAdmin) return <>{children}</>
   if (!loaded) return null
