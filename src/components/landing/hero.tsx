@@ -1,5 +1,6 @@
 'use client'
 
+import { AllowlistConsentLink } from './allowlist-consent-link'
 import { LiveCounter } from './live-counter'
 import { PixelPagerField } from './pixel-pager'
 import { TopNav } from './top-nav'
@@ -44,7 +45,7 @@ export function Hero({ onLogin }: { onLogin: () => void }) {
 
         {/* CTAs */}
         <div className="flex flex-col items-stretch gap-3 w-[15rem]">
-          <a
+          <AllowlistConsentLink
             href="mailto:chinatchinat123@gmail.com?subject=Beeper%20allowlist%20request&body=Hi%20Chinat%2C%0A%0AI%27d%20like%20to%20be%20added%20to%20the%20Beeper%20allowlist.%0A%0AMy%20phone%3A%20%0AMy%20use%20case%3A%20"
             className="cta-primary relative flex h-[3.25rem] items-center justify-between rounded-full pl-6 pr-1.5"
           >
@@ -73,7 +74,7 @@ export function Hero({ onLogin }: { onLogin: () => void }) {
                 <path d="M5 12h14M13 5l7 7-7 7" />
               </svg>
             </span>
-          </a>
+          </AllowlistConsentLink>
           <a
             href="#how-it-works"
             className="cta-secondary flex h-[3.25rem] items-center justify-center rounded-full text-[13px] tracking-[0.18em] font-bold"

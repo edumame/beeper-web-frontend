@@ -15,6 +15,7 @@ export function AdminClient() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
+  const [consent, setConsent] = useState(false)
   const [userStatus, setUserStatus] = useState<Status>({ kind: 'idle' })
 
   // Add-allowlist form
@@ -45,7 +46,7 @@ export function AdminClient() {
         throw new Error(data.message ?? `${res.status} ${res.statusText}`)
       }
       setUserStatus({ kind: 'ok', message: `Added ${id.trim()}.` })
-      setId(''); setFirstName(''); setLastName(''); setPhone('')
+      setId(''); setFirstName(''); setLastName(''); setPhone(''); setConsent(false)
       setRefreshTick(t => t + 1)
     } catch (err) {
       setUserStatus({ kind: 'error', message: (err as Error).message })
@@ -100,7 +101,8 @@ export function AdminClient() {
             <Field label="Last name (optional)" value={lastName} onChange={setLastName} autoComplete="off" />
           </div>
           <Field label="Phone (e.g. +15555550000)" value={phone} onChange={setPhone} required autoComplete="off" />
-          <Submit pending={userStatus.kind === 'pending'} label="ADD / UPDATE PERSON" />
+          <ConsentCheckbox checked={consent} onChange={setConsent} />
+          <Submit pending={userStatus.kind === 'pending'} disabled={!consent} label="ADD / UPDATE PERSON" />
           <StatusLine status={userStatus} />
         </form>
       </Section>
@@ -178,16 +180,54 @@ function Field({
   )
 }
 
-function Submit({ pending, label }: { pending: boolean; label: string }) {
+function Submit({ pending, label, disabled }: { pending: boolean; label: string; disabled?: boolean }) {
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || disabled}
       className="bg-primary text-on-primary font-label-caps text-label-caps px-4 py-2.5 rounded-md disabled:opacity-40 hover:bg-on-primary-fixed-variant transition-colors duration-150 ease-out"
       style={{ boxShadow: 'var(--shadow-md)' }}
     >
       {pending ? 'SAVING…' : label}
     </button>
+  )
+}
+
+function ConsentCheckbox({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-start gap-stack-sm cursor-pointer border border-outline-variant bg-surface-container-low px-stack-sm py-stack-sm rounded-md">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        required
+        className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+      />
+      <span className="font-code-sm text-code-sm text-on-surface-variant leading-relaxed">
+        This person has agreed to receive recurring SMS text messages from Beeper
+        at the number above (a text each time they are beeped). Message frequency
+        varies. Message and data rates may apply. They can reply STOP to
+        unsubscribe at any time or HELP for help. See our{' '}
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary underline underline-offset-2 hover:opacity-80"
+        >
+          Privacy Policy
+        </a>{' '}
+        and{' '}
+        <a
+          href="/terms"
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary underline underline-offset-2 hover:opacity-80"
+        >
+          Terms
+        </a>
+        .
+      </span>
+    </label>
   )
 }
 
