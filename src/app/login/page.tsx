@@ -3,11 +3,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { api } from '@/lib/api'
+import { useIdentityActions } from '@/lib/identity'
 
 type Step = 'phone' | 'code'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { setMe } = useIdentityActions()
   const [step, setStep] = useState<Step>('phone')
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
@@ -52,6 +54,10 @@ export default function LoginPage() {
     try {
       const r = await api.verifyCode(normalized, code.trim())
       console.log(`[beeper] login: verify OK, user_id=${r.user_id}, redirecting to /`)
+      // Populate the shared identity so IdentityGate flips immediately — a
+      // client-side router.replace does not remount the provider, so without
+      // this the gate would keep its stale signed-out state.
+      setMe(r.user_id)
       router.replace('/')
     } catch (err) {
       console.error('[beeper] login: verify failed', err)

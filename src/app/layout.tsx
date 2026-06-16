@@ -5,6 +5,7 @@ import { TopAppBar } from "@/components/top-app-bar";
 import { SideNav } from "@/components/side-nav";
 import { BottomNav } from "@/components/bottom-nav";
 import { IdentityGate } from "@/components/identity-gate";
+import { IdentityProvider } from "@/lib/identity";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -60,12 +61,14 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-surface-container-lowest text-on-surface min-h-screen flex flex-col font-body-sm">
-        <TopAppBar />
-        <SideNav />
-        <div className="flex-1 flex flex-col md:pl-60 pt-10 pb-12 md:pb-0">
-          <IdentityGate>{children}</IdentityGate>
-        </div>
-        <BottomNav />
+        <IdentityProvider>
+          <TopAppBar />
+          <SideNav />
+          <div className="flex-1 flex flex-col md:pl-60 pt-10 pb-12 md:pb-0">
+            <IdentityGate>{children}</IdentityGate>
+          </div>
+          <BottomNav />
+        </IdentityProvider>
       </body>
     </html>
   );
