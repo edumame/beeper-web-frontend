@@ -129,7 +129,7 @@ export default function InboxPage() {
                     {formatTime(beep.created_at)}
                   </div>
                 </div>
-                <div className="bg-surface-container-low border border-outline-variant p-stack-sm rounded-md font-code-sm text-code-sm text-on-surface line-clamp-2 min-h-10 w-full">
+                <div className="bg-surface-container-low border border-outline-variant p-stack-sm rounded-md font-code-sm text-code-sm text-on-surface whitespace-pre-wrap break-words min-h-10 w-full">
                   {beep.task}
                 </div>
                 <div className="mt-unit flex items-center justify-between">
