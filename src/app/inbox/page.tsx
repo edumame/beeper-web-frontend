@@ -21,6 +21,7 @@ export default function InboxPage() {
   const [action, setAction] = useState<"reply" | "decline" | null>(null);
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [acking, setAcking] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const fetchBeeps = useCallback(async () => {
@@ -40,6 +41,20 @@ export default function InboxPage() {
   useEffect(() => {
     fetchBeeps();
   }, [fetchBeeps]);
+
+  const ackBeep = async (beep: Beep) => {
+    if (!me) return;
+    setAcking(beep.id);
+    setFetchError(null);
+    try {
+      await api.acknowledge(beep.id, me);
+      await fetchBeeps();
+    } catch (e: unknown) {
+      setFetchError((e as Error).message);
+    } finally {
+      setAcking(null);
+    }
+  };
 
   const openAction = (id: string, type: "reply" | "decline") => {
     setActingOn(id);
@@ -162,6 +177,13 @@ export default function InboxPage() {
                     style={{ boxShadow: "var(--shadow-sm)" }}
                   >
                     REPLY
+                  </button>
+                  <button
+                    onClick={() => ackBeep(beep)}
+                    disabled={acking === beep.id}
+                    className="font-label-caps text-label-caps px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded-md disabled:opacity-40 hover:bg-surface-container transition-colors duration-150 ease-out"
+                  >
+                    {acking === beep.id ? "ACKING…" : "ACK"}
                   </button>
                   <button
                     onClick={() => openAction(beep.id, "decline")}

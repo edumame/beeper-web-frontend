@@ -106,6 +106,11 @@ export const api = {
       `/api/beeps/${id}/reply`, { method: 'POST', body: JSON.stringify({ by, reply }) },
     ),
 
+  acknowledge: (id: string, by: string) =>
+    req<{ id: string; status: 'acknowledged' }>(
+      `/api/beeps/${id}/acknowledge`, { method: 'POST', body: JSON.stringify({ by }) },
+    ),
+
   decline: (id: string, by: string, reason: string) =>
     req<{ id: string; status: 'declined'; sender_notified: boolean }>(
       `/api/beeps/${id}/decline`, { method: 'POST', body: JSON.stringify({ by, reason }) },
