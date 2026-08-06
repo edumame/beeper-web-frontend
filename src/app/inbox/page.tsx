@@ -23,6 +23,7 @@ export default function InboxPage() {
   const [submitting, setSubmitting] = useState(false);
   const [acking, setAcking] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const fetchBeeps = useCallback(async () => {
     if (!me) return;
@@ -74,11 +75,16 @@ export default function InboxPage() {
     if (!me || !text.trim() || !action) return;
     setSubmitting(true);
     setSubmitError(null);
+    setNotice(null);
     try {
-      if (action === "reply") {
-        await api.reply(beep.id, me, text);
-      } else {
-        await api.decline(beep.id, me, text);
+      const result =
+        action === "reply"
+          ? await api.reply(beep.id, me, text)
+          : await api.decline(beep.id, me, text);
+      if (!result.sender_notified) {
+        setNotice(
+          `Your ${action === "reply" ? "reply" : "decline"} for ${beep.id} was saved, but ${beep.from} couldn't be notified by text — they'll still see it in Beeper.`,
+        );
       }
       cancelAction();
       await fetchBeeps();
@@ -111,6 +117,19 @@ export default function InboxPage() {
       {fetchError && (
         <div className="mb-stack-sm font-code-sm text-code-sm text-error border border-error px-stack-sm py-2 rounded-md bg-error-container">
           {fetchError}
+        </div>
+      )}
+
+      {notice && (
+        <div className="mb-stack-sm flex items-start justify-between gap-2 font-code-sm text-code-sm text-on-surface-variant border border-outline-variant px-stack-sm py-2 rounded-md bg-surface-container">
+          <span>{notice}</span>
+          <button
+            onClick={() => setNotice(null)}
+            aria-label="Dismiss"
+            className="font-label-caps text-label-caps text-on-surface-variant hover:text-on-surface"
+          >
+            ✕
+          </button>
         </div>
       )}
 
