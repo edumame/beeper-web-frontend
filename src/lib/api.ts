@@ -26,6 +26,14 @@ export type Beep = {
 }
 
 export type User = { id: string; display_name: string }
+export type InviteStatus = 'pending' | 'accepted' | 'declined' | 'canceled'
+export type Invite = {
+  id: string
+  phone: string
+  first_name: string
+  status: InviteStatus
+  created_at: string
+}
 export type Me = {
   user_id: string
   display_name: string
@@ -120,6 +128,29 @@ export const api = {
     req<{ edges: { owner: string; sender: string; added_at: string }[] }>(
       `/api/allowlist?owner=${encodeURIComponent(owner)}`,
     ).then(r => r.edges),
+
+  // Self-serve allowlist writes — owner is always the session user server-side.
+  allowlistAdd: (sender_id: string) =>
+    req<{ ok: true; owner: string; sender: string }>(
+      '/api/allowlist', { method: 'POST', body: JSON.stringify({ sender_id }) },
+    ),
+
+  allowlistRemove: (sender: string) =>
+    req<{ ok: true }>(`/api/allowlist/${encodeURIComponent(sender)}`, { method: 'DELETE' }),
+
+  // Exact-match only (handle or E.164 phone) — there is no browse/search.
+  lookupUser: (q: string) =>
+    req<{ user: User }>(`/api/users/lookup?q=${encodeURIComponent(q)}`).then(r => r.user),
+
+  invites: () => req<{ invites: Invite[] }>('/api/invites').then(r => r.invites),
+
+  sendInvite: (phone: string, first_name: string) =>
+    req<{ id: string; status: 'pending'; recipient_notified: boolean }>(
+      '/api/invites', { method: 'POST', body: JSON.stringify({ phone, first_name }) },
+    ),
+
+  cancelInvite: (id: string) =>
+    req<{ ok: true }>(`/api/invites/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 }
 
 export function formatTime(iso: string): string {
