@@ -40,6 +40,7 @@ export type Me = {
   first_name: string | null
   last_name: string | null
   is_admin: boolean
+  api_key: string | null
 }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -151,6 +152,16 @@ export const api = {
 
   cancelInvite: (id: string) =>
     req<{ ok: true }>(`/api/invites/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  // Rotates immediately — the old key stops working.
+  rotateApiKey: () =>
+    req<{ api_key: string }>('/api/auth/api-key', { method: 'POST' }).then(r => r.api_key),
+
+  // Irreversible: deletes the user row and everything cascading from it
+  // (beeps both directions, attachments, phones, allowlist, invites) plus
+  // stored transcripts. Also clears the session cookie server-side.
+  deleteAccount: () =>
+    req<{ ok: true }>('/api/auth/me', { method: 'DELETE' }),
 }
 
 export function formatTime(iso: string): string {

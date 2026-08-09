@@ -16,7 +16,7 @@ const INVITE_STATUS_STYLES: Record<Invite["status"], string> = {
 };
 
 export default function AccessPage() {
-  const [me] = useIdentity();
+  const [me, setMe] = useIdentity();
   const [edges, setEdges] = useState<
     { owner: string; sender: string; added_at: string }[]
   >([]);
@@ -34,6 +34,17 @@ export default function AccessPage() {
   const [removing, setRemoving] = useState<string | null>(null);
   const [canceling, setCanceling] = useState<string | null>(null);
 
+  // Delete account section
+  const [deleteArmed, setDeleteArmed] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  // API key section
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [keyVisible, setKeyVisible] = useState(false);
+  const [keyBusy, setKeyBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   const refresh = useCallback(() => {
     if (!me) return;
     setFetchError(null);
@@ -50,6 +61,7 @@ export default function AccessPage() {
     if (!me) return;
     setLoading(true);
     refresh();
+    api.me().then((m) => setApiKey(m.api_key)).catch(() => {});
   }, [me, refresh]);
 
   if (!me) return null;
@@ -130,6 +142,48 @@ export default function AccessPage() {
       setActionError((e as Error).message);
     } finally {
       setCanceling(null);
+    }
+  }
+
+  async function handleCopyKey() {
+    if (!apiKey) return;
+    try {
+      await navigator.clipboard.writeText(apiKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setActionError("Couldn't copy — select the key manually.");
+      setKeyVisible(true);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteConfirm.trim().toLowerCase() !== me || deleting) return;
+    setDeleting(true);
+    setActionError(null);
+    try {
+      await api.deleteAccount();
+      // Session cookie is cleared server-side; drop the cached identity and
+      // land on the public page.
+      setMe(null);
+      window.location.href = "/";
+    } catch (e) {
+      setActionError((e as Error).message);
+      setDeleting(false);
+    }
+  }
+
+  async function handleRotateKey() {
+    setKeyBusy(true);
+    setActionError(null);
+    try {
+      const next = await api.rotateApiKey();
+      setApiKey(next);
+      setNotice("API key rotated — the old key stopped working. Update anything that used it.");
+    } catch (e) {
+      setActionError((e as Error).message);
+    } finally {
+      setKeyBusy(false);
     }
   }
 
@@ -326,6 +380,109 @@ export default function AccessPage() {
           </div>
         </section>
       )}
+
+      <section className="mb-8">
+        <h2 className="font-label-caps text-label-caps text-on-surface-variant mb-stack-sm">
+          API KEY — FOR CLI &amp; MCP SENDS
+        </h2>
+        <div
+          className="border border-outline-variant bg-surface-container-lowest p-stack-sm rounded-md flex flex-col gap-stack-xs"
+          style={{ boxShadow: "var(--shadow-sm)" }}
+        >
+          <code className="font-code-sm text-code-sm text-on-surface break-all select-all">
+            {apiKey
+              ? keyVisible
+                ? apiKey
+                : `${apiKey.slice(0, 7)}${"•".repeat(20)}`
+              : "LOADING…"}
+          </code>
+          <span className="font-code-sm text-code-sm text-on-surface-variant">
+            Sending beeps from outside the browser needs this key:{" "}
+            <code>Authorization: Bearer &lt;key&gt;</code> on{" "}
+            <code>POST /api/beeps</code> and MCP requests.
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={handleCopyKey}
+              disabled={!apiKey}
+              className="font-label-caps text-label-caps px-3 py-1.5 bg-primary text-on-primary rounded-md disabled:opacity-40 hover:bg-on-primary-fixed-variant transition-colors duration-150 ease-out"
+            >
+              {copied ? "COPIED ✓" : "COPY"}
+            </button>
+            <button
+              onClick={() => setKeyVisible((v) => !v)}
+              disabled={!apiKey}
+              className="font-label-caps text-label-caps px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded-md disabled:opacity-40 hover:bg-surface-container transition-colors duration-150 ease-out"
+            >
+              {keyVisible ? "HIDE" : "SHOW"}
+            </button>
+            <button
+              onClick={handleRotateKey}
+              disabled={!apiKey || keyBusy}
+              className="font-label-caps text-label-caps px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded-md disabled:opacity-40 hover:bg-surface-container hover:text-error transition-colors duration-150 ease-out"
+            >
+              {keyBusy ? "ROTATING…" : "ROTATE"}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="font-label-caps text-label-caps text-error mb-stack-sm">
+          DANGER ZONE — DELETE ACCOUNT
+        </h2>
+        <div
+          className="border border-error rounded-md p-stack-sm flex flex-col gap-stack-xs bg-surface-container-lowest"
+          style={{ boxShadow: "var(--shadow-sm)" }}
+        >
+          <span className="font-code-sm text-code-sm text-on-surface-variant">
+            Deletes your account and everything tied to it — beeps you sent and
+            received, attachments, transcripts, phone numbers, allowlist
+            entries, and invites. This cannot be undone.
+          </span>
+          {!deleteArmed ? (
+            <button
+              onClick={() => {
+                setDeleteArmed(true);
+                setDeleteConfirm("");
+              }}
+              className="font-label-caps text-label-caps self-start px-3 py-1.5 border border-error text-error rounded-md hover:bg-error-container transition-colors duration-150 ease-out"
+            >
+              DELETE ACCOUNT
+            </button>
+          ) : (
+            <div className="flex flex-col gap-stack-xs">
+              <span className="font-label-caps text-label-caps text-error">
+                TYPE YOUR HANDLE ({me?.toUpperCase()}) TO CONFIRM
+              </span>
+              <input
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleDeleteAccount()}
+                placeholder={me ?? ""}
+                autoFocus
+                className="brutalist-input w-full border border-outline bg-surface-container-lowest p-2 font-code-sm text-code-sm text-on-surface rounded-md"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteConfirm.trim().toLowerCase() !== me || deleting}
+                  className="font-label-caps text-label-caps px-3 py-1.5 bg-error text-on-error rounded-md disabled:opacity-40 transition-colors duration-150 ease-out"
+                >
+                  {deleting ? "DELETING…" : "DELETE FOREVER"}
+                </button>
+                <button
+                  onClick={() => setDeleteArmed(false)}
+                  disabled={deleting}
+                  className="font-label-caps text-label-caps px-3 py-1.5 border border-outline-variant text-on-surface-variant rounded-md disabled:opacity-40 hover:bg-surface-container transition-colors duration-150 ease-out"
+                >
+                  CANCEL
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
     </main>
   );
 }
