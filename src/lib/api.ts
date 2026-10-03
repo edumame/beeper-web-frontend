@@ -7,7 +7,7 @@
 const BASE = process.env.NEXT_PUBLIC_BEEPER_API_URL ?? ''
 
 export type Urgency = 'low' | 'normal' | 'high'
-export type BeepStatus = 'open' | 'closed' | 'declined'
+export type BeepStatus = 'open' | 'closed' | 'declined' | 'acknowledged'
 
 export type Beep = {
   id: string
@@ -24,6 +24,8 @@ export type Beep = {
   decline_reason?: string
   transcript_status?: string | null
 }
+
+export type BeepPage = { beeps: Beep[]; next_offset: number | null }
 
 export type User = { id: string; display_name: string }
 export type InviteStatus = 'pending' | 'accepted' | 'declined' | 'canceled'
@@ -84,6 +86,12 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T
 }
 
+// The host pages /api/beeps (50 per page by default) and returns
+// next_offset: null on the last page.
+const beepPage = (query: string, offset: number) =>
+  req<BeepPage>(`/api/beeps?${query}&offset=${offset}`)
+    .then(r => ({ beeps: r.beeps, next_offset: r.next_offset ?? null }))
+
 export const api = {
   me: () => req<Me>('/api/auth/me'),
 
@@ -99,11 +107,15 @@ export const api = {
 
   listUsers: () => req<{ users: User[] }>('/api/users').then(r => r.users),
 
-  inbox: (me: string) =>
-    req<{ beeps: Beep[] }>(`/api/beeps?to=${encodeURIComponent(me)}&status=open`).then(r => r.beeps),
+  inbox: (me: string, offset = 0) =>
+    beepPage(`to=${encodeURIComponent(me)}&status=open`, offset),
 
-  sent: (me: string) =>
-    req<{ beeps: Beep[] }>(`/api/beeps?from=${encodeURIComponent(me)}`).then(r => r.beeps),
+  // Beeps I received and already answered, most recently answered first.
+  handled: (me: string, offset = 0) =>
+    beepPage(`to=${encodeURIComponent(me)}&status=closed,declined,acknowledged&order=closed_at`, offset),
+
+  sent: (me: string, offset = 0) =>
+    beepPage(`from=${encodeURIComponent(me)}`, offset),
 
   send: (body: { from: string; to: string; task: string; cwd?: string; urgency?: Urgency; request_transcript?: boolean }) =>
     req<{ id: string; created_at: string; recipient_notified: boolean }>(

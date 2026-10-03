@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { api, type Beep, type Urgency } from "@/lib/api";
 import { formatTime } from "@/lib/api";
+import { STATUS_DOT, STATUS_LABEL, STATUS_PILL } from "@/lib/beep-status";
 import { useIdentity } from "@/lib/identity";
+import { LoadMore } from "@/components/load-more";
 
 const URGENCY_STYLES: Record<Urgency, string> = {
   high: "bg-error text-on-error rounded-full",
@@ -24,14 +26,21 @@ export default function InboxPage() {
   const [acking, setAcking] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [tab, setTab] = useState<"open" | "handled">("open");
+  const [handled, setHandled] = useState<Beep[]>([]);
+  const [handledLoading, setHandledLoading] = useState(false);
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
+  const [handledNextOffset, setHandledNextOffset] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const fetchBeeps = useCallback(async () => {
     if (!me) return;
     setLoading(true);
     setFetchError(null);
     try {
-      const data = await api.inbox(me);
-      setBeeps(data);
+      const page = await api.inbox(me);
+      setBeeps(page.beeps);
+      setNextOffset(page.next_offset);
     } catch (e: unknown) {
       setFetchError((e as Error).message);
     } finally {
@@ -42,6 +51,44 @@ export default function InboxPage() {
   useEffect(() => {
     fetchBeeps();
   }, [fetchBeeps]);
+
+  // Loaded on every switch to the tab so replies sent from the open tab show up.
+  const showHandled = () => {
+    setTab("handled");
+    if (!me) return;
+    setHandledLoading(true);
+    setFetchError(null);
+    api
+      .handled(me)
+      .then((page) => {
+        setHandled(page.beeps);
+        setHandledNextOffset(page.next_offset);
+      })
+      .catch((e) => setFetchError((e as Error).message))
+      .finally(() => setHandledLoading(false));
+  };
+
+  const loadMore = async () => {
+    const offset = tab === "open" ? nextOffset : handledNextOffset;
+    if (!me || offset === null) return;
+    setLoadingMore(true);
+    setFetchError(null);
+    try {
+      if (tab === "open") {
+        const page = await api.inbox(me, offset);
+        setBeeps((prev) => [...prev, ...page.beeps]);
+        setNextOffset(page.next_offset);
+      } else {
+        const page = await api.handled(me, offset);
+        setHandled((prev) => [...prev, ...page.beeps]);
+        setHandledNextOffset(page.next_offset);
+      }
+    } catch (e: unknown) {
+      setFetchError((e as Error).message);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const ackBeep = async (beep: Beep) => {
     if (!me) return;
@@ -105,14 +152,34 @@ export default function InboxPage() {
         </h1>
         <span
           className={`font-code-sm text-code-sm px-3 py-1 rounded-full ${
-            !loading && beeps.length > 0
+            tab === "open" && !loading && beeps.length > 0
               ? "bg-primary-container text-on-primary-container"
               : "bg-surface-container text-on-surface-variant border border-outline-variant"
           }`}
         >
-          {loading ? "…" : `${beeps.length} TASKS`}
+          {tab === "open"
+            ? loading ? "…" : `${beeps.length}${nextOffset !== null ? "+" : ""} TASKS`
+            : handledLoading ? "…" : `${handled.length}${handledNextOffset !== null ? "+" : ""} HANDLED`}
         </span>
       </header>
+
+      <div role="tablist" className="mb-stack-sm flex gap-2">
+        {(["open", "handled"] as const).map((t) => (
+          <button
+            key={t}
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => (t === "handled" ? showHandled() : setTab(t))}
+            className={`font-label-caps text-label-caps px-3 py-1.5 rounded-md transition-colors duration-150 ease-out ${
+              tab === t
+                ? "bg-primary text-on-primary"
+                : "border border-outline-variant text-on-surface-variant hover:bg-surface-container"
+            }`}
+          >
+            {t.toUpperCase()}
+          </button>
+        ))}
+      </div>
 
       {fetchError && (
         <div className="mb-stack-sm font-code-sm text-code-sm text-error border border-error px-stack-sm py-2 rounded-md bg-error-container">
@@ -133,7 +200,56 @@ export default function InboxPage() {
         </div>
       )}
 
-      {loading ? (
+      {tab === "handled" ? (
+        handledLoading ? (
+          <div className="font-code-sm text-code-sm text-on-surface-variant py-8 text-center">
+            LOADING…
+          </div>
+        ) : handled.length === 0 ? (
+          <div className="font-code-sm text-code-sm text-on-surface-variant py-8 text-center">
+            NO HANDLED BEEPS
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {handled.map((beep) => (
+              <article
+                key={beep.id}
+                className="bg-surface-container-lowest border border-outline-variant p-stack-sm flex flex-col md:flex-row md:items-start justify-between gap-stack-sm rounded-md"
+                style={{ boxShadow: "var(--shadow-sm)" }}
+              >
+                <div className="flex flex-col gap-stack-xs flex-grow min-w-0">
+                  <div className="font-code-sm text-code-sm text-on-surface-variant uppercase">
+                    FROM: {beep.from}
+                    {beep.closed_at && ` · ${formatTime(beep.closed_at)}`}
+                  </div>
+                  <div className="font-body-sm text-body-sm text-on-surface max-w-prose break-words">
+                    &ldquo;{beep.task}&rdquo;
+                  </div>
+                  {beep.status === "closed" && beep.reply && (
+                    <div className="font-code-sm text-code-sm text-on-surface-variant max-w-prose border-l-2 border-primary pl-2 mt-1 italic whitespace-pre-wrap break-words">
+                      ↳ {beep.reply}
+                    </div>
+                  )}
+                  {beep.status === "declined" && beep.decline_reason && (
+                    <div className="font-code-sm text-code-sm text-error max-w-prose border-l-2 border-error pl-2 mt-1 italic whitespace-pre-wrap break-words">
+                      ↳ {beep.decline_reason}
+                    </div>
+                  )}
+                </div>
+                <div className="shrink-0 flex items-center">
+                  <div
+                    className={`font-label-caps text-label-caps px-2.5 py-1 rounded-full flex items-center gap-1.5 ${STATUS_PILL[beep.status]}`}
+                  >
+                    <span className={STATUS_DOT[beep.status]} aria-hidden />
+                    {STATUS_LABEL[beep.status]}
+                  </div>
+                </div>
+              </article>
+            ))}
+            {handledNextOffset !== null && <LoadMore loading={loadingMore} onClick={loadMore} />}
+          </div>
+        )
+      ) : loading ? (
         <div className="font-code-sm text-code-sm text-on-surface-variant py-8 text-center">
           LOADING…
         </div>
@@ -248,6 +364,11 @@ export default function InboxPage() {
               )}
             </div>
           ))}
+          {nextOffset !== null && (
+            <div className="md:col-span-2">
+              <LoadMore loading={loadingMore} onClick={loadMore} />
+            </div>
+          )}
         </div>
       )}
 

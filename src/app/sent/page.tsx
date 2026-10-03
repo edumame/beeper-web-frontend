@@ -1,32 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { api, type Beep, type BeepStatus } from "@/lib/api";
+import { api, type Beep } from "@/lib/api";
+import { STATUS_DOT, STATUS_LABEL, STATUS_PILL } from "@/lib/beep-status";
 import { useIdentity } from "@/lib/identity";
-
-const STATUS_DOT: Record<BeepStatus, string> = {
-  closed: "status-dot",
-  open: "status-dot status-dot--gray",
-  declined: "status-dot status-dot--red",
-};
-
-const STATUS_PILL: Record<BeepStatus, string> = {
-  closed: "bg-primary-container text-on-primary-container",
-  open: "bg-surface-container text-on-surface-variant border border-outline-variant",
-  declined: "bg-error-container text-on-error-container",
-};
-
-const STATUS_LABEL: Record<BeepStatus, string> = {
-  closed: "REPLIED",
-  open: "QUEUED",
-  declined: "DECLINED",
-};
+import { LoadMore } from "@/components/load-more";
 
 export default function SentPage() {
   const [me] = useIdentity();
   const [beeps, setBeeps] = useState<Beep[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     if (!me) return;
@@ -34,10 +20,28 @@ export default function SentPage() {
     setFetchError(null);
     api
       .sent(me)
-      .then((data) => setBeeps(data))
+      .then((page) => {
+        setBeeps(page.beeps);
+        setNextOffset(page.next_offset);
+      })
       .catch((e) => setFetchError((e as Error).message))
       .finally(() => setLoading(false));
   }, [me]);
+
+  const loadMore = async () => {
+    if (!me || nextOffset === null) return;
+    setLoadingMore(true);
+    setFetchError(null);
+    try {
+      const page = await api.sent(me, nextOffset);
+      setBeeps((prev) => [...prev, ...page.beeps]);
+      setNextOffset(page.next_offset);
+    } catch (e: unknown) {
+      setFetchError((e as Error).message);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   if (!me) return null;
 
@@ -48,7 +52,7 @@ export default function SentPage() {
           📟 SENT
         </h1>
         <span className="font-code-sm text-code-sm text-on-surface-variant ml-auto px-3 py-1 bg-surface-container border border-outline-variant rounded-full">
-          {loading ? "…" : `${beeps.length} SENT`}
+          {loading ? "…" : `${beeps.length}${nextOffset !== null ? "+" : ""} SENT`}
         </span>
       </div>
 
@@ -112,6 +116,7 @@ export default function SentPage() {
               </div>
             </article>
           ))}
+          {nextOffset !== null && <LoadMore loading={loadingMore} onClick={loadMore} />}
         </div>
       )}
     </main>
